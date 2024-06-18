@@ -1,5 +1,6 @@
 import json
 import os
+import pandas as pd
 
 import fastavro
 
@@ -31,3 +32,26 @@ def convert_json_to_avro(dir_with_json: str, dir_with_avro: str) -> None:
         }
         with open(avro_path, 'wb') as avro_file:
             fastavro.writer(avro_file, avro_schema, data)
+
+
+def convert_json_to_csv(dir_with_json, dir_with_csv):
+    """Convert all files from JSON directory to CSV."""
+    # Check if directory exists
+    if not os.path.exists(dir_with_csv):
+        os.makedirs(dir_with_csv)
+
+    # Transform all files
+    for file_name in os.listdir(dir_with_json):
+        if file_name.endswith('.json'):
+            json_file_path = os.path.join(dir_with_json, file_name)
+            csv_file_path = os.path.join(dir_with_json, file_name.replace('.json', '.csv'))
+
+            # Read JSON
+            with open(json_file_path, 'r', encoding='utf-8') as json_file:
+                records = json.load(json_file)
+
+            # Collect data as DF
+            df = pd.DataFrame(records)
+
+            # Write CSV
+            df.to_csv(csv_file_path, index=False)
