@@ -7,39 +7,39 @@ from airflow.operators.empty import EmptyOperator
 
 
 default_args = {
-    'owner': 'airflow',
-    'start_date': days_ago(1),
-    'retries': 1,
+    "owner": "airflow",
+    "start_date": days_ago(1),
+    "retries": 1,
 }
 
-PROJECT_ID = 'de-course-427113'
-BUCKET = 'fin_project_raw_bucket'
-BRONZE_DATASET = 'bronze'
-SILVER_DATASET = 'silver'
+PROJECT_ID = "de-course-427113"
+BUCKET = "fin_project_raw_bucket"
+BRONZE_DATASET = "bronze"
+SILVER_DATASET = "silver"
 
 
 with DAG(
-    dag_id='process_sales',
+    dag_id="process_sales",
     default_args=default_args,
-    schedule_interval='@daily',
+    schedule_interval="@daily",
     catchup=False,
 ) as dag:
     start = EmptyOperator(
-        task_id='start',
+        task_id="start",
     )
     load_bronze = GCSToBigQueryOperator(
-        task_id='load_bronze',
+        task_id="load_bronze",
         bucket=f"{BUCKET}",
-        source_objects=['sales/*.csv'],
+        source_objects=["sales/*.csv"],
         destination_project_dataset_table=f"{PROJECT_ID}.{BRONZE_DATASET}.sales",
         schema_fields=[
-            {'name': 'CustomerId', 'type': 'STRING', 'mode': 'NULLABLE'},
-            {'name': 'PurchaseDate', 'type': 'STRING', 'mode': 'NULLABLE'},
-            {'name': 'Product', 'type': 'STRING', 'mode': 'NULLABLE'},
-            {'name': 'Price', 'type': 'STRING', 'mode': 'NULLABLE'},
+            {"name": "CustomerId", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "PurchaseDate", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "Product", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "Price", "type": "STRING", "mode": "NULLABLE"},
         ],
-        write_disposition='WRITE_TRUNCATE',
-        source_format='CSV',
+        write_disposition="WRITE_TRUNCATE",
+        source_format="CSV",
         skip_leading_rows=1,
     )
     create_partitioning_silver = BigQueryCreateEmptyTableOperator(
@@ -47,18 +47,18 @@ with DAG(
         dataset_id='silver',
         table_id='sales',
         schema_fields=[
-            {'name': 'client_id', 'type': 'STRING', 'mode': 'NULLABLE'},
-            {'name': 'purchase_date', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'},
-            {'name': 'product_name', 'type': 'STRING', 'mode': 'NULLABLE'},
-            {'name': 'price', 'type': 'FLOAT64', 'mode': 'NULLABLE'},
+            {"name": "client_id", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "purchase_date", "type": "TIMESTAMP", "mode": "NULLABLE"},
+            {"name": "product_name", "type": "STRING", "mode": "NULLABLE"},
+            {"name": "price", "type": "FLOAT64", "mode": "NULLABLE"},
         ],
         time_partitioning={
-            'type': 'DAY',
-            'field': 'purchase_date',
+            "type": "DAY",
+            "field": "purchase_date",
         },
     )
     copy_to_silver = BigQueryInsertJobOperator(
-        task_id='copy_to_silver',
+        task_id="copy_to_silver",
         configuration={
             "query": {
                 "query": f"""
