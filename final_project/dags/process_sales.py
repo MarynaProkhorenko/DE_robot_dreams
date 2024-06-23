@@ -4,7 +4,8 @@ from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobO
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyTableOperator
 from airflow.utils.dates import days_ago
 from airflow.operators.empty import EmptyOperator
-
+from airflow.models import Variable
+from queries import populate_silver_sales
 
 default_args = {
     "owner": "airflow",
@@ -12,10 +13,10 @@ default_args = {
     "retries": 1,
 }
 
-PROJECT_ID = "de-course-427113"
-BUCKET = "fin_project_raw_bucket"
-BRONZE_DATASET = "bronze"
-SILVER_DATASET = "silver"
+PROJECT_ID = Variable.get("PROJECT_ID")
+BUCKET = Variable.get("BUCKET")
+BRONZE_DATASET = Variable.get("BRONZE_DATASET")
+SILVER_DATASET = Variable.get("SILVER_DATASET")
 
 
 with DAG(
@@ -61,20 +62,7 @@ with DAG(
         task_id="copy_to_silver",
         configuration={
             "query": {
-                "query": f"""
-                  SELECT
-                      CAST(CustomerId AS STRING) AS client_id,
-                      IFNULL(
-                          SAFE.PARSE_TIMESTAMP('%Y-%m-%d', PurchaseDate),
-                          SAFE.PARSE_TIMESTAMP('%Y-%b-%d', PurchaseDate)
-                      ) AS purchase_date,
-                      CAST(Product AS STRING) AS product_name,
-                      CAST(Price AS FLOAT64) AS price
-                  FROM
-                      `{PROJECT_ID}.bronze.sales`
-                  WHERE
-                      SAFE_CAST(Price AS FLOAT64) IS NOT NULL
-                  """,
+                "query": populate_silver_sales,
                 "useLegacySql": False,
                 "destinationTable": {
                     "projectId": f"{PROJECT_ID}",

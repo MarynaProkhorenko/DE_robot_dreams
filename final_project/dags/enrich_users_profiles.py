@@ -2,7 +2,9 @@ from airflow import DAG
 from airflow.providers.google.cloud.operators.bigquery import BigQueryInsertJobOperator, BigQueryCreateEmptyTableOperator
 from airflow.utils.dates import days_ago
 from airflow.operators.empty import EmptyOperator
+from airflow.models import Variable
 
+from queries import enrich_users_profiles_query
 
 default_args = {
     "owner": "airflow",
@@ -10,11 +12,11 @@ default_args = {
     "retries": 1,
 }
 
-PROJECT_ID = "de-course-427113"
-BUCKET = "fin_project_raw_bucket"
-BRONZE_DATASET = "bronze"
-SILVER_DATASET = "silver"
-GOLD_DATASET = "gold"
+PROJECT_ID = Variable.get("PROJECT_ID")
+BUCKET = Variable.get("BUCKET")
+BRONZE_DATASET = Variable.get("BRONZE_DATASET")
+SILVER_DATASET = Variable.get("SILVER_DATASET")
+GOLD_DATASET = Variable.get("GOLD_DATASET")
 
 
 with DAG(
@@ -45,25 +47,7 @@ with DAG(
         task_id="enrich_customers",
         configuration={
             "query": {
-                "query": f"""
-                CREATE OR REPLACE TABLE `{PROJECT_ID}.{GOLD_DATASET}.user_profiles_enriched` AS
-                SELECT
-                    c.client_id,
-                    COALESCE(u.first_name, c.first_name) AS first_name,
-                    COALESCE(u.last_name, c.last_name) AS last_name,
-                    c.email,
-                    c.registration_date,
-                    COALESCE(u.state, c.state) AS state,
-                    u.email AS profile_email,
-                    u.birth_date AS birth_date,
-                    u.phone_number
-                FROM
-                    `{PROJECT_ID}.{SILVER_DATASET}.customers` c
-                LEFT JOIN
-                    `{PROJECT_ID}.{SILVER_DATASET}.user_profiles` u
-                ON
-                    c.email = u.email
-                """,
+                "query": enrich_users_profiles_query,
                 "useLegacySql": False,
             }
         },

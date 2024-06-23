@@ -5,6 +5,8 @@ from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateExternalTableOperator,
     BigQueryExecuteQueryOperator
 )
+from airflow.models import Variable
+from queries import populate_users_profiles
 
 default_args = {
     "owner": "airflow",
@@ -13,11 +15,11 @@ default_args = {
 }
 
 
-PROJECT_ID = "de-course-427113"
-BUCKET = "fin_project_raw_bucket"
-BRONZE_DATASET = "bronze"
-SILVER_DATASET = "silver"
-GOLD_DATASET = "gold"
+PROJECT_ID = Variable.get("PROJECT_ID")
+BUCKET = Variable.get("BUCKET")
+BRONZE_DATASET = Variable.get("BRONZE_DATASET")
+SILVER_DATASET = Variable.get("SILVER_DATASET")
+GOLD_DATASET = Variable.get("GOLD_DATASET")
 
 
 with DAG(
@@ -46,19 +48,7 @@ with DAG(
 
     transform_and_load_silver = BigQueryExecuteQueryOperator(
         task_id='transform_and_load_silver',
-        sql=f"""
-        CREATE OR REPLACE TABLE `{PROJECT_ID}.{SILVER_DATASET}.user_profiles`
-        AS
-        SELECT DISTINCT
-            email,
-            SPLIT(full_name, ' ')[SAFE_OFFSET(0)] AS first_name,
-            SPLIT(full_name, ' ')[SAFE_OFFSET(1)] AS last_name,
-            state,
-            PARSE_DATE('%Y-%m-%d', birth_date) AS birth_date,
-            phone_number
-        FROM
-            `{PROJECT_ID}.{BRONZE_DATASET}.user_profiles`;
-        """,
+        sql=populate_users_profiles,
         use_legacy_sql=False,
     )
     end = EmptyOperator(
