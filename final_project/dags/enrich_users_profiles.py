@@ -4,6 +4,7 @@ from airflow.utils.dates import days_ago
 from airflow.operators.empty import EmptyOperator
 from airflow.models import Variable
 
+from schemas import enrich_users_schema
 from queries import enrich_users_profiles_query
 
 default_args = {
@@ -32,16 +33,7 @@ with DAG(
         task_id="create_gold_table",
         dataset_id=GOLD_DATASET,
         table_id="user_profiles_enriched",
-        schema_fields=[
-            {"name": "client_id", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "first_name", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "last_name", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "email", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "registration_date", "type": "TIMESTAMP", "mode": "NULLABLE"},
-            {"name": "state", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "birth_date", "type": "TIMESTAMP", "mode": "NULLABLE"},
-            {"name": "phone_number", "type": "STRING", "mode": "NULLABLE"},
-        ],
+        schema_fields=enrich_users_schema,
     )
     enrich_customers = BigQueryInsertJobOperator(
         task_id="enrich_customers",

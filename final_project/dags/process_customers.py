@@ -5,6 +5,8 @@ from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmpt
 from airflow.utils.dates import days_ago
 from airflow.operators.empty import EmptyOperator
 from airflow.models import Variable
+
+from schemas import customers_bronze_schema, customers_silver_schema
 from queries import populate_silver_customers
 
 default_args = {
@@ -34,14 +36,7 @@ with DAG(
         bucket=f"{BUCKET}",
         source_objects=["customers/*.csv"],
         destination_project_dataset_table=f"{PROJECT_ID}.{BRONZE_DATASET}.customers",
-        schema_fields=[
-            {"name": "Id", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "FirstName", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "LastName", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "Email", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "RegistrationDate", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "State", "type": "STRING", "mode": "NULLABLE"},
-        ],
+        schema_fields=customers_bronze_schema,
         write_disposition="WRITE_TRUNCATE",
         source_format="CSV",
         skip_leading_rows=1,
@@ -50,14 +45,7 @@ with DAG(
         task_id="create_silver_table",
         dataset_id="silver",
         table_id="customers",
-        schema_fields=[
-            {"name": "client_id", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "first_name", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "last_name", "type": 'STRING', 'mode': 'NULLABLE'},
-            {"name": "email", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "registration_date", "type": "TIMESTAMP", "mode": "NULLABLE"},
-            {"name": "state", "type": "STRING", "mode": "NULLABLE"},
-        ],
+        schema_fields=customers_silver_schema,
     )
     copy_to_silver = BigQueryInsertJobOperator(
         task_id="copy_to_silver",

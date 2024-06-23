@@ -5,6 +5,8 @@ from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmpt
 from airflow.utils.dates import days_ago
 from airflow.operators.empty import EmptyOperator
 from airflow.models import Variable
+
+from schemas import sales_bronze_schema, sales_silver_schema
 from queries import populate_silver_sales
 
 default_args = {
@@ -33,12 +35,7 @@ with DAG(
         bucket=f"{BUCKET}",
         source_objects=["sales/*.csv"],
         destination_project_dataset_table=f"{PROJECT_ID}.{BRONZE_DATASET}.sales",
-        schema_fields=[
-            {"name": "CustomerId", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "PurchaseDate", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "Product", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "Price", "type": "STRING", "mode": "NULLABLE"},
-        ],
+        schema_fields=sales_bronze_schema,
         write_disposition="WRITE_TRUNCATE",
         source_format="CSV",
         skip_leading_rows=1,
@@ -47,12 +44,7 @@ with DAG(
         task_id='create_partitioning_silver',
         dataset_id='silver',
         table_id='sales',
-        schema_fields=[
-            {"name": "client_id", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "purchase_date", "type": "TIMESTAMP", "mode": "NULLABLE"},
-            {"name": "product_name", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "price", "type": "FLOAT64", "mode": "NULLABLE"},
-        ],
+        schema_fields=sales_silver_schema,
         time_partitioning={
             "type": "DAY",
             "field": "purchase_date",

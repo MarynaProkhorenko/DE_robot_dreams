@@ -6,6 +6,8 @@ from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryExecuteQueryOperator
 )
 from airflow.models import Variable
+
+from schemas import users_profiles_bronze_schema
 from queries import populate_users_profiles
 
 default_args = {
@@ -36,13 +38,7 @@ with DAG(
         destination_project_dataset_table=f"{PROJECT_ID}.{BRONZE_DATASET}.user_profiles",
         bucket=BUCKET,
         source_objects=["user_profiles/*.json"],
-        schema_fields=[
-            {"name": "email", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "full_name", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "state", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "birth_date", "type": "STRING", "mode": "NULLABLE"},
-            {"name": "phone_number", "type": "STRING", "mode": "NULLABLE"}
-        ],
+        schema_fields=users_profiles_bronze_schema,
         source_format="NEWLINE_DELIMITED_JSON",
     )
 
